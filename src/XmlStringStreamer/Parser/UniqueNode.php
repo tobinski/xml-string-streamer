@@ -29,6 +29,8 @@ class UniqueNode implements ParserInterface
      */
     private $flushed = "";
 
+
+    private $tmpFlushed = "";
     /**
      * Start position of the given element in the workingBlob
      * @var integer
@@ -77,6 +79,7 @@ class UniqueNode implements ParserInterface
     {
         $this->options = array_merge(array(
             "extractContainer" => false,
+            "ignoreNestedNodes" => false
         ), $options);
 
         if (!isset($this->options["uniqueNode"])) {
@@ -171,10 +174,13 @@ class UniqueNode implements ParserInterface
     protected function flush($endPositionInBlob) {
         $endTagLen = $this->shortClosedTagNow ? 0 : strlen("</" . $this->options["uniqueNode"] . ">");
         $realEndPosition = $endPositionInBlob + $endTagLen;
-        $this->flushed = substr($this->workingBlob, $this->startPos, $realEndPosition - $this->startPos);
+        $this->flushed .= $this->tmpFlushed.substr($this->workingBlob, $this->startPos, $realEndPosition - $this->startPos);
+
         $this->workingBlob = substr($this->workingBlob, $realEndPosition);
         $this->hasSearchedUntilPos = 0;
-        $this->shortClosedTagNow = false;
+        if(isset($this->options["ignoreNestedNodes"]) && $this->options["ignoreNestedNodes"] == false) {
+            $this->shortClosedTagNow = false;
+        }
     }
 
     /**
@@ -236,8 +242,16 @@ class UniqueNode implements ParserInterface
                 // Try to find a closing tag
                 $positionInBlob = $this->getClosingTagPos();
                 if ($positionInBlob !== false) {
-                    // We found it, we now have a full node to flush out
+                    // We found it, we now have a full/partial node to flush out
                     $this->flush($positionInBlob);
+
+                    // check if its the corresponding close tag
+                    if(isset($this->options["ignoreNestedNodes"]) && $this->options["ignoreNestedNodes"] == true){
+                        if(!$this->isCorresponding()) {
+                            $this->startSalvaging(0);
+                            continue;
+                        }
+                    }
 
                     // The next course of action will be to find an opening tag
                     $this->nextAction = self::FIND_OPENING_TAG_ACTION;
@@ -270,5 +284,31 @@ class UniqueNode implements ParserInterface
         }
 
         return $this->containerXml;
+    }
+
+
+    /**
+     * Check if there is a nested node and ignore it
+     * @return bool
+     */
+    private function isCorresponding () {
+        // check for shortclosing tags
+        if($this->shortClosedTagNow){
+            $this->shortClosedTagNow = false;
+            return true;
+        }
+        // check for other start tags
+        $start = preg_match_all("/<" . preg_quote($this->options["uniqueNode"]) . "(>| )/", $this->flushed, $startMatches);
+        $end = preg_match_all("/<\/" . preg_quote($this->options["uniqueNode"]) . "(>| )/", $this->flushed, $endMatches);
+        if($start == $end){
+            return true;
+        }
+        elseif($start > $end
+        ){
+            return false;
+        }
+        else{
+            return false;
+        }
     }
 }

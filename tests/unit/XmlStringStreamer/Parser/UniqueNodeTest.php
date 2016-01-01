@@ -12,15 +12,15 @@ class UniqueNodeTest extends PHPUnit_Framework_TestCase
         $defaultXMLLength = strlen($fullString);
 
         $stream = Mockery::mock("\\Prewk\\XmlStringStreamer\\StreamInterface");
-        
+
         // Mock a stream
         for ($i = 0; $i < $defaultXMLLength; $i += $bufferSize) {
             $stream->shouldReceive("getChunk")
-                   ->once()
-                   ->andReturn(substr($fullString, $i, $bufferSize));
+                ->once()
+                ->andReturn(substr($fullString, $i, $bufferSize));
         }
         $stream->shouldReceive("getChunk")
-               ->andReturn(false);
+            ->andReturn(false);
 
         return $stream;
     }
@@ -56,13 +56,13 @@ eot;
                 $node3
             </root>
 eot;
-    
+
         $stream = $this->getStreamMock($xml, 50);
-        
+
         $parser = new UniqueNode(array(
             "uniqueNode" => "child"
         ));
-        
+
         $this->assertEquals(
             trim($node1),
             trim($parser->getNodeFrom($stream)),
@@ -83,7 +83,7 @@ eot;
             "When no nodes are left, false should be returned"
         );
     }
-        
+
     public function test_uniqueNode_shortClosing_setting() {
         $node1 = <<<eot
             <child foo="Lorem" index="1" />
@@ -114,19 +114,19 @@ eot;
         ));
 
         $this->assertEquals(
-                trim($node1), 
-                trim($parser->getNodeFrom($stream)), 
-                "Node 1 should be obtained on the first getNodeFrom"
+            trim($node1),
+            trim($parser->getNodeFrom($stream)),
+            "Node 1 should be obtained on the first getNodeFrom"
         );
         $this->assertEquals(
-                trim($node2), 
-                trim($parser->getNodeFrom($stream)), 
-                "Node 2 should be obtained on the first getNodeFrom"
+            trim($node2),
+            trim($parser->getNodeFrom($stream)),
+            "Node 2 should be obtained on the first getNodeFrom"
         );
         $this->assertEquals(
-                trim($node3), 
-                trim($parser->getNodeFrom($stream)), 
-                "Node 3 should be obtained on the first getNodeFrom"
+            trim($node3),
+            trim($parser->getNodeFrom($stream)),
+            "Node 3 should be obtained on the first getNodeFrom"
         );
     }
 
@@ -179,13 +179,13 @@ eot;
                 $node4
             </root-b>
 eot;
-        
+
         $stream = $this->getStreamMock($xml, 50);
-        
+
         $parser = new UniqueNode(array(
             "uniqueNode" => "child"
         ));
-        
+
         $this->assertEquals(
             trim($node1),
             trim($parser->getNodeFrom($stream)),
@@ -210,5 +210,53 @@ eot;
             false,
             "When no nodes are left, false should be returned"
         );
+    }
+
+    public function test_nested_nodes () {
+        $node1 = <<<eot
+            <child>
+                <foo baz="attribute" />
+                <bar/>
+                <index>1</index>
+            </child>
+eot;
+        $node3 = <<<eot
+            <child>
+                <foo baz="attribute" />
+                <bar/>
+                <index>1</index>
+                $node1
+            </child>
+eot;
+        $node2 = <<<eot
+            <child>
+                <foo baz="attribute" />
+                <bar/>
+                <index>1</index>
+                $node3
+            </child>
+eot;
+        $xml = <<<eot
+            <?xml version="1.0"?>
+            <root>
+                $node2
+            </root>
+eot;
+
+        $stream = $this->getStreamMock($xml, 50);
+
+        $parser = new UniqueNode(array(
+            "uniqueNode" => "child",
+            "ignoreNestedNodes" => true
+        ));
+
+        $node = $parser->getNodeFrom($stream);
+        $this->assertEquals(
+            trim($node2),
+            trim($node),
+            "Nested nodes should be ignored"
+        );
+
+
     }
 }
