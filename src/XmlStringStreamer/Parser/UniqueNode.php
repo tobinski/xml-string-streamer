@@ -29,8 +29,6 @@ class UniqueNode implements ParserInterface
      */
     private $flushed = "";
 
-
-    private $tmpFlushed = "";
     /**
      * Start position of the given element in the workingBlob
      * @var integer
