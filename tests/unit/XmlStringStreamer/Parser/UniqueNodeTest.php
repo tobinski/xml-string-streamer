@@ -259,4 +259,54 @@ eot;
 
 
     }
+
+    public function test_sibling_nodes () {
+        $node1 = <<<eot
+            <child>
+                <foo baz="attribute" />
+                <bar/>
+                <index>1</index>
+            </child>
+eot;
+        $node3 = <<<eot
+            <child>
+                <foo baz="attribute" />
+                <bar/>
+                <index>1</index>
+                $node1
+                $node1
+            </child>
+eot;
+        $node2 = <<<eot
+            <child>
+                <foo baz="attribute" />
+                <bar/>
+                <index>1</index>
+                $node3
+                $node1
+            </child>
+eot;
+        $xml = <<<eot
+            <?xml version="1.0"?>
+            <root>
+                $node2
+            </root>
+eot;
+
+        $stream = $this->getStreamMock($xml, 50);
+
+        $parser = new UniqueNode(array(
+            "uniqueNode" => "child",
+            "ignoreNestedNodes" => true
+        ));
+
+        $node = $parser->getNodeFrom($stream);
+        $this->assertEquals(
+            trim($node2),
+            trim($node),
+            "Nested siblings should be ignored"
+        );
+
+
+    }
 }

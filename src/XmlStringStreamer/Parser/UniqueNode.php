@@ -172,7 +172,7 @@ class UniqueNode implements ParserInterface
     protected function flush($endPositionInBlob) {
         $endTagLen = $this->shortClosedTagNow ? 0 : strlen("</" . $this->options["uniqueNode"] . ">");
         $realEndPosition = $endPositionInBlob + $endTagLen;
-        $this->flushed .= $this->tmpFlushed.substr($this->workingBlob, $this->startPos, $realEndPosition - $this->startPos);
+        $this->flushed .= substr($this->workingBlob, $this->startPos, $realEndPosition - $this->startPos);
 
         $this->workingBlob = substr($this->workingBlob, $realEndPosition);
         $this->hasSearchedUntilPos = 0;
